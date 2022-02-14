@@ -7,4 +7,3 @@ Just a regular supermarket program
 3. Prices for each product
 4. Total Prices
 5. Increase and Drop prices
-6. DELETE,ADD,UPDATE Products
