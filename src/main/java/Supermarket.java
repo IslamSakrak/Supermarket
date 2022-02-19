@@ -1,83 +1,93 @@
 import java.io.*;
-import java.nio.file.FileSystemNotFoundException;
 import java.util.*;
-
 public class Supermarket {
-    private final Map<String, Integer> shoppingCartItems = new HashMap<>();
+    private static final Random random = new Random();
+    private static final Map<String, Integer> priceByProducts = new HashMap<>();
 
-    public void start() {
-        getValuesFromFile();
-        System.out.println("There are " + shoppingCartItems.size() + " items in the cart.");
-        int sum = 0;
-        Object randomValue = getRandomItem();
-        sum = getPriceSum(sum, randomValue);
+    public void transaction() {
+        getShoppingCartItems();
+        System.out.println("There are " + priceByProducts.size() + " items in the cart.");
+        List<Integer> values = priceByProducts.values().stream().toList();
+        int randomShoppingCartItemPrice = getRandomItem(values);
+        int sum = getPriceSum(randomShoppingCartItemPrice);
         System.out.println("Which is a total of $" + sum + " dollars.");
     }
 
-    private int getPriceSum(int sum, Object randomValue) {
-        for (Map.Entry<String, Integer> entry : shoppingCartItems.entrySet()) {
-            System.out.println(entry.getKey() + ":" + entry.getValue());
-            if (isOnDiscount() && randomValue == entry.getValue()) {
-                sum = getDiscount(sum, entry);
-            } else if (isPriceIncrease() && randomValue == entry.getValue()) {
-                sum = getPriceIncrease(sum, entry);
+    private int getPriceSum(int randomValue) {
+        int sum = 0;
+        /*
+        valuesByKeys as in teamsByCaptains. If you are going to include both key and value, this seems to read best.
+         At a high level, you can read it as just teams”, so anything that's performed on it is being performed on teams.
+          The byCaptains prefix reads as it should do: a less significant qualifier that follows the teams around to help
+           someone understands the structure if they need to.
+         */
+        for (Map.Entry<String, Integer> priceByProduct : priceByProducts.entrySet()) {
+            printMapElements(priceByProduct);
+            if (isProductOnDiscount() && randomValue == priceByProduct.getValue()) {
+                priceDiscountText(priceByProduct);
+                sum += getDiscount(priceByProduct);
+            } else if (isProductPriceIncrease() && randomValue == priceByProduct.getValue()) {
+                priceIncreaseText(priceByProduct);
+                sum += getPriceIncrease(priceByProduct);
             } else {
-                sum += entry.getValue();
+                sum += priceByProduct.getValue();
             }
         }
         return sum;
     }
-
-    private int getPriceIncrease(int sum, Map.Entry<String, Integer> entry) {
-        System.out.println("There is a price increase on " + entry.getKey() + " which price has increased from " + entry.getValue() + " to "
-                + (int) (entry.getValue() * 1.1));
-        sum += entry.getValue() * 1.1;
-        return sum;
+                                                
+    private void printMapElements(Map.Entry<String, Integer> shoppingCartElement) {
+        System.out.println(shoppingCartElement.getKey() + ":" + shoppingCartElement.getValue());
     }
 
-    private int getDiscount(int sum, Map.Entry<String, Integer> entry) {
-        System.out.println("There is a discount on " + entry.getKey() + " which price has dropped from " + entry.getValue() + " to "
-                + (int) (entry.getValue() * 0.7));
-        sum += entry.getValue() * 0.7;
-        return sum;
+    private void priceIncreaseText(Map.Entry<String, Integer> shoppingCartItem) {
+        System.out.println("There is a price increase on " + shoppingCartItem.getKey() + " which price has increased from " + shoppingCartItem.getValue() + " to "
+                + (int) (shoppingCartItem.getValue() * 1.1));
     }
 
-    private Object getRandomItem() {
-        Random generator = new Random();
-        Object[] values = shoppingCartItems.values().toArray();
-        return values[generator.nextInt(values.length)];
+    private void priceDiscountText(Map.Entry<String, Integer> shoppingCartItem) {
+        System.out.println("There is a discount on " + shoppingCartItem.getKey() + " which price has dropped from " + shoppingCartItem.getValue() + " to "
+                + (int) (shoppingCartItem.getValue() * 0.7));
     }
 
-    private void getValuesFromFile() {
-        try {
-            BufferedReader bufferedReader = getBufferedReader();
-            addToShoppingCart(bufferedReader);
+    private double getPriceIncrease(Map.Entry<String, Integer> shoppingCartItem) {
+        return shoppingCartItem.getValue() * 1.1;
+    }
+
+    private double getDiscount(Map.Entry<String, Integer> shoppingCartItem) {
+        return shoppingCartItem.getValue() * 0.7;
+    }
+
+    private int getRandomItem(List<Integer> values) {
+        return values.get(random.nextInt(values.size()));
+    }
+
+    private void getShoppingCartItems() {
+        try (BufferedReader br = getBufferedReader();) {
+            for (String line; (line = br.readLine()) != null; ) {
+                addToShoppingCart(line);
+            }
         } catch (IOException e) {
-            throw new FileSystemNotFoundException("The file could not be found, check the file or adjust the location");
+            System.out.println("Something is wrong with the file");
         }
     }
 
-    private BufferedReader getBufferedReader() throws FileNotFoundException {
+    private BufferedReader getBufferedReader() throws IOException {
         File file = new File("src/main/resources/groceriesList.txt");
         FileReader fileReader = new FileReader(file);
         return new BufferedReader(fileReader);
     }
 
-    private void addToShoppingCart(BufferedReader bufferedReader) throws IOException {
-        String line;
-        int MAX_LINE = 96;
-        for (int i = 0; i < MAX_LINE ; i++) {
-            line = bufferedReader.readLine().toLowerCase(Locale.ROOT);
-            shoppingCartItems.putIfAbsent(line,(int) (Math.random()*100 +1));
-        }
+    private void addToShoppingCart(String line) {
+        priceByProducts.putIfAbsent(line, random.nextInt(1,100));
     }
 
-    private boolean isOnDiscount() {
+    private boolean isProductOnDiscount() {
         double d = Math.random();
         return d < 0.5;
     }
 
-    private boolean isPriceIncrease() {
+    private boolean isProductPriceIncrease() {
         double d = Math.random();
         return d < 0.2;
     }
